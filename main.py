@@ -1,7 +1,36 @@
 import random
 import string
 import tkinter as tk
-from tkinter import PhotoImage, messagebox
+from tkinter import PhotoImage, messagebox, simpledialog
+from tkinter.ttk import Progressbar
+
+# Clase para la ventana de solicitud de nombre
+class VentanaNombre(tk.Toplevel):
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("Nombre de usuario")
+        self.geometry("300x150")  # Tamaño de la ventana
+
+        tk.Label(self, text="Introduce tu nombre:", font=("Helvetica", 12)).pack(pady=10)
+        self.entry_nombre = tk.Entry(self, font=("Helvetica", 12))
+        self.entry_nombre.pack(pady=5)
+
+        tk.Button(self, text="Aceptar", command=self.aceptar).pack(pady=10)
+
+        self.nombre_usuario = None
+
+    def aceptar(self):
+        self.nombre_usuario = self.entry_nombre.get()
+        if self.nombre_usuario:
+            self.destroy()
+        else:
+            messagebox.showerror("Error", "Debes introducir un nombre para continuar.")
+
+# Función para solicitar el nombre del usuario
+def solicitar_nombre():
+    ventana_nombre = VentanaNombre(root)
+    root.wait_window(ventana_nombre)  # Espera a que se cierre la ventana
+    return ventana_nombre.nombre_usuario
 
 # Función para generar la contraseña
 def generar_contraseña(longitud, incluir_mayusculas=True, incluir_numeros=True, incluir_simbolos=True):
@@ -15,6 +44,23 @@ def generar_contraseña(longitud, incluir_mayusculas=True, incluir_numeros=True,
 
     contraseña = ''.join(random.choice(caracteres) for _ in range(longitud))
     return contraseña
+
+# Función que calcula la fortaleza de la contraseña
+def calcular_fortaleza(contraseña):
+    longitud = len(contraseña)
+    tiene_mayusculas = any(c.isupper() for c in contraseña)
+    tiene_numeros = any(c.isdigit() for c in contraseña)
+    tiene_simbolos = any(c in string.punctuation for c in contraseña)
+
+    puntuacion = longitud
+    if tiene_mayusculas:
+        puntuacion += 2
+    if tiene_numeros:
+        puntuacion += 2
+    if tiene_simbolos:
+        puntuacion += 2
+
+    return min(puntuacion, 10)  # Limitar a 10 como máximo
 
 # Función que se ejecuta al presionar el botón
 def generar_contraseña_y_mostrar():
@@ -36,6 +82,51 @@ def generar_contraseña_y_mostrar():
     entry_resultado.insert(0, contraseña)
     entry_resultado.config(state='readonly')
 
+    # Calcular y actualizar barra de fortaleza
+    fortaleza = calcular_fortaleza(contraseña)
+    barra_fortaleza['value'] = fortaleza
+    label_fortaleza.config(text=f"Fortaleza: {fortaleza}/10")
+
+# Función para copiar la contraseña al portapapeles
+def copiar_al_portapapeles():
+    root.clipboard_clear()
+    root.clipboard_append(entry_resultado.get())
+    messagebox.showinfo("Información", "¡Contraseña copiada al portapapeles!")
+
+# Función para guardar la contraseña en un archivo
+def guardar_contraseña():
+    nombre_usuario = solicitar_nombre()  # Obtener el nombre del usuario
+    contraseña = entry_resultado.get()
+    
+    if not contraseña:
+        messagebox.showerror("Error", "No hay ninguna contraseña generada para guardar.")
+        return
+    
+    # Abrir o crear archivo para guardar las contraseñas
+    with open("contraseñas.txt", "a+") as f:
+        f.seek(0)  # Ir al inicio del archivo para leer contenido
+        lineas = f.readlines()
+        
+        # Verificar si el nombre del usuario ya existe
+        encontrado = False
+        for i, linea in enumerate(lineas):
+            if linea.startswith(f"Usuario: {nombre_usuario}"):
+                # Si el nombre ya existe, añadir la contraseña en una nueva línea
+                lineas.insert(i + 1, f"  - {contraseña}\n")
+                encontrado = True
+                break
+
+        if not encontrado:
+            # Si el usuario no está registrado, agregar un nuevo bloque para el usuario
+            lineas.append(f"Usuario: {nombre_usuario}\n")
+            lineas.append(f"  - {contraseña}\n")
+
+        # Sobreescribir el archivo con las nuevas líneas
+        f.seek(0)
+        f.writelines(lineas)
+    
+    messagebox.showinfo("Información", f"¡Contraseña guardada para {nombre_usuario}!")
+
 # Configuración de la ventana
 root = tk.Tk()
 root.title("FortiPass")
@@ -54,6 +145,7 @@ root.rowconfigure(3, weight=1)
 root.rowconfigure(4, weight=1)
 root.rowconfigure(5, weight=1)
 root.rowconfigure(6, weight=1)
+root.rowconfigure(7, weight=1)
 
 # Título en la ventana
 tk.Label(root, text="FortiPass: Sistema Seguro", font=("Helvetica", 16), bg='lightblue').grid(row=0, column=0, columnspan=2, padx=10, pady=10)
@@ -80,11 +172,16 @@ tk.Label(root, text="Contraseña generada:", font=("Helvetica", 12), bg='lightbl
 entry_resultado = tk.Entry(root, width=50, font=("Helvetica", 12), state='readonly')
 entry_resultado.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
 
-# Botón para generar la contraseña
-tk.Button(root, text="Generar Contraseña", font=("Helvetica", 12), command=generar_contraseña_y_mostrar).grid(row=6, column=0, columnspan=2, padx=10, pady=10)
+# Barra de fortaleza
+label_fortaleza = tk.Label(root, text="Fortaleza: 0/10", font=("Helvetica", 12), bg='lightblue')
+label_fortaleza.grid(row=6, column=0, padx=10, pady=5, sticky="e")
+barra_fortaleza = Progressbar(root, length=200, mode='determinate', maximum=10)
+barra_fortaleza.grid(row=6, column=1, padx=10, pady=5, sticky="w")
 
-# Iniciar la interfaz gráfica
+# Botones para generar, copiar y guardar la contraseña
+tk.Button(root, text="Generar Contraseña", font=("Helvetica", 12), command=generar_contraseña_y_mostrar).grid(row=7, column=0, columnspan=2, padx=10, pady=10)
+tk.Button(root, text="Copiar Contraseña", font=("Helvetica", 12), command=copiar_al_portapapeles).grid(row=8, column=0, columnspan=2, padx=10, pady=5)
+tk.Button(root, text="Guardar Contraseña", font=("Helvetica", 12), command=guardar_contraseña).grid(row=9, column=0, columnspan=2, padx=10, pady=5)
+
+# Iniciar la ventana
 root.mainloop()
-
-
-# Autor: Gonzalo Franch Escobar
