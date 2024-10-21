@@ -6,4 +6,5 @@
 - Python
 - Tkinter
 - Git
-Autor: Gonzalo Franch Escobar
+  
+-Autor: Gonzalo Franch Escobar
