@@ -29,7 +29,7 @@ class VentanaNombre(tk.Toplevel):
 # Función para solicitar el nombre del usuario
 def solicitar_nombre():
     ventana_nombre = VentanaNombre(root)
-    root.wait_window(ventana_nombre)  # Espera a que se cierre la ventana
+    root.wait_window(ventana_nombre)  
     return ventana_nombre.nombre_usuario
 
 # Función para generar la contraseña
@@ -95,7 +95,7 @@ def copiar_al_portapapeles():
 
 # Función para guardar la contraseña en un archivo
 def guardar_contraseña():
-    nombre_usuario = solicitar_nombre()  # Obtener el nombre del usuario
+    nombre_usuario = solicitar_nombre()
     contraseña = entry_resultado.get()
     
     if not contraseña:
@@ -104,7 +104,7 @@ def guardar_contraseña():
     
     # Abrir o crear archivo para guardar las contraseñas
     with open("contraseñas.txt", "a+") as f:
-        f.seek(0)  # Ir al inicio del archivo para leer contenido
+        f.seek(0)
         lineas = f.readlines()
         
         # Verificar si el nombre del usuario ya existe
